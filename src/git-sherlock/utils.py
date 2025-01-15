@@ -1,33 +1,17 @@
 import datetime
 import importlib.util as importlib
-import pygit2
+import git
 import sys
+import inspect
 
 from .colors import Colors
 
 from pathlib import Path
 
 
-def get_commits(
-    path: Path, n: int
-) -> tuple[pygit2.repository.Repository, list[pygit2.Commit]]:
-    dotGit = pygit2.discover_repository(str(path))
-
-    if dotGit is None:
-        raise RuntimeError(f"{path} is not a valid git repository")
-
-    repo = pygit2.repository.Repository(dotGit)
-    head_commit = repo[repo.head.target]
-
-    commits: list[pygit2.Commit] = []
-
-    for commit in repo.walk(head_commit.id, pygit2.enums.SortMode.TOPOLOGICAL):
-        if len(commits) > n:
-            break
-
-        commits.append(commit)
-
-    return repo, commits
+def get_commits(path: Path, n: int) -> tuple[git.Repo, list[git.Commit]]:
+    repo = git.Repo(path)
+    return repo, list(repo.iter_commits(max_count=n))
 
 
 def load_plugins():
@@ -53,14 +37,37 @@ def load_plugins():
             continue
 
 
-def process_commits(commits: list[pygit2.Commit]) -> list[str]:
+def process_commits(r: git.Repo, commits: list[git.Commit]) -> list[str]:
     ret = []
 
     for c in commits:
-        t = datetime.datetime.fromtimestamp(c.commit_time)
+        t = datetime.datetime.fromtimestamp(c.committed_date)
         title = c.message.splitlines()[0].strip()
+        sha = r.rev_parse(c.hexsha)
         ret.append(
-            f"{t.strftime('%d-%m-%Y')} {Colors.BRIGHT_BLACK.value}{c.short_id}{Colors.RESET.value} {title}"
+            f"{t.strftime('%d-%m-%Y')} {Colors.BRIGHT_BLACK.value}{str(sha)[:7]}{Colors.RESET.value} {title}"
         )
 
     return ret
+
+
+def status_char_color(status: str) -> str:
+    match status:
+        case "":
+            return f"{Colors.BRIGHT_BLACK.value}U{Colors.RESET.value}"
+        case "M":
+            return f"{Colors.BRIGHT_CYAN.value}M{Colors.RESET.value}"
+        case "T":
+            return f"{Colors.YELLOW.value}T{Colors.RESET.value}"
+        case "A":
+            return f"{Colors.BRIGHT_GREEN.value}A{Colors.RESET.value}"
+        case "D":
+            return f"{Colors.BRIGHT_RED.value}R{Colors.RESET.value}"
+        case "R":
+            return f"{Colors.BRIGHT_PURPLE.value}R{Colors.RESET.value}"
+        case "C":
+            return f"{Colors.BRIGHT_BLUE.value}C{Colors.RESET.value}"
+        case "U":
+            return f"{Colors.BRIGHT_BROWN.value}U{Colors.RESET.value}"
+        case _:
+            raise RuntimeError(f"Unknown status {status}")
