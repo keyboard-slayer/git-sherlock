@@ -43,4 +43,7 @@ def status_char_color(status: str) -> str:
         case "U":
             return f"{Colors.BRIGHT_BROWN.value}U{Colors.RESET.value}"
         case _:
+            if len(status) > 1:
+                return status_char_color(status[0])
+
             raise RuntimeError(f"Unknown status {status}")

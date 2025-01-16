@@ -40,6 +40,7 @@ class Ui:
             commit.parents[0] if commit.parents else None,
             create_patch=True,
             paths=[filename],
+            R=True,
         )
 
         for diff_item in diff:
@@ -76,7 +77,9 @@ class Ui:
         output = self.repo.git.show("--name-status", commit.hexsha)
         for line in output.splitlines():
             if "\t" in line:
-                status, file_path = line.split("\t")
+                l = line.split("\t")
+                status = l[0]
+                file_path = l[-1]
                 self.scr.add_line(
                     f"{status_char_color(status)}\t{file_path}",
                     partial(self.display_diff_file, commit, file_path),
