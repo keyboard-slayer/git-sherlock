@@ -22,7 +22,8 @@
             buildInputs = [
               python312
               python312Packages.typer
-              python312Packages.pygit2
+              python312Packages.gitpython
+              python312Packages.pygments
             ];
           };
       }

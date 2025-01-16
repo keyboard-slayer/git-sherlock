@@ -1,9 +1,5 @@
 import datetime
-import importlib.util as importlib
 import git
-import sys
-import inspect
-
 from .colors import Colors
 
 from pathlib import Path
@@ -12,29 +8,6 @@ from pathlib import Path
 def get_commits(path: Path, n: int) -> tuple[git.Repo, list[git.Commit]]:
     repo = git.Repo(path)
     return repo, list(repo.iter_commits(max_count=n))
-
-
-def load_plugins():
-    pluginDir = Path.home() / ".config" / "git-search" / "plugins"
-    pluginDir.mkdir(parents=True, exist_ok=True)
-
-    sys.modules["git_search"] = sys.modules[__name__]
-
-    for plugin in pluginDir.glob("*.py"):
-        spec = importlib.spec_from_file_location("plugin", plugin)
-
-        if not spec or not spec.loader:
-            sys.stderr.write(f"[-] Couldn't load plugin file {plugin}")
-            continue
-
-        module = importlib.module_from_spec(spec)
-        sys.modules["plugin"] = module
-
-        try:
-            spec.loader.exec_module(module)
-        except Exception as e:
-            sys.stderr.write(f"[-] Couldn't load plugin file {plugin}: {e}")
-            continue
 
 
 def process_commits(r: git.Repo, commits: list[git.Commit]) -> list[str]:
