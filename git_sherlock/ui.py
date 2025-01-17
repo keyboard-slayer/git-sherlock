@@ -1,10 +1,11 @@
 from .screen import Screen
-from .utils import process_commits, status_char_color
+from .utils import process_commits, status_char_color, open_editor
 
 import git
 
 from typing import Optional
 from functools import partial
+from pathlib import Path
 from pygments import highlight
 from pygments.lexers import DiffLexer
 from pygments.formatters import terminal256
@@ -32,6 +33,8 @@ class Ui:
             self.scr.add_line(c, partial(self.display_commit, commits[n]))
 
     def display_diff_file(self, commit: git.Commit, filename: str):
+        assert self.repo is not None
+
         self.scr.backup_pos("display_commit")
         self.scr.define_quit_action(partial(self.display_commit, commit))
         self.scr.clear()
@@ -41,6 +44,10 @@ class Ui:
             create_patch=True,
             paths=[filename],
             R=True,
+        )
+
+        self.scr.bindings["e"] = partial(
+            open_editor, str(Path(self.repo.git_dir).parent / filename)
         )
 
         for diff_item in diff:

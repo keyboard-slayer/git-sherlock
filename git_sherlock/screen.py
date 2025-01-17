@@ -10,14 +10,28 @@ class Screen:
         tty.setcbreak(sys.stdin.fileno())
 
         self.size = shutil.get_terminal_size()
-
         self.pos = (1, 1)
         self.offset = 0
         self.quit = self.default_quit
         self.buffer = []
         self.need_update = True
         self.previous_pos = {}
+        self.bindings = {}
+
         self.clearscr()
+        self.reset_bindings()
+
+    def reset_bindings(self):
+        self.bindings = {
+            "j": lambda: self.move_cursor((self.pos[0], self.pos[1] + 1)),
+            "k": lambda: self.move_cursor((self.pos[0], self.pos[1] - 1)),
+            "l": lambda: self.move_cursor((self.pos[0] + 1, self.pos[1])),
+            "h": lambda: self.move_cursor((self.pos[0] - 1, self.pos[1])),
+            "\n": lambda: None
+            if self.buffer[self.pos[1] + self.offset - 1][1] is None
+            else self.buffer[self.pos[1] + self.offset - 1][1](),
+            "q": lambda: self.quit(),
+        }
 
     def backup_pos(self, name: str):
         if name not in self.previous_pos:
@@ -99,21 +113,9 @@ class Screen:
         try:
             while True:
                 self.update()
-                match self.getch():
-                    case "\n":
-                        if (
-                            callback := self.buffer[self.pos[1] + self.offset - 1][1]
-                        ) is not None:
-                            callback()
-                    case "j":
-                        self.move_cursor((self.pos[0], self.pos[1] + 1))
-                    case "k":
-                        self.move_cursor((self.pos[0], self.pos[1] - 1))
-                    case "l":
-                        self.move_cursor((self.pos[0] + 1, self.pos[1]))
-                    case "h":
-                        self.move_cursor((self.pos[0] - 1, self.pos[1]))
-                    case "q":
-                        self.quit()
+                key = self.getch()
+                if key in self.bindings:
+                    self.bindings[key]()
+
         except Exception:
             print(traceback.format_exc())

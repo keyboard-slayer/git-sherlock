@@ -1,5 +1,7 @@
+import os
 import datetime
 import git
+
 from .colors import Colors
 
 from pathlib import Path
@@ -47,3 +49,8 @@ def status_char_color(status: str) -> str:
                 return status_char_color(status[0])
 
             raise RuntimeError(f"Unknown status {status}")
+
+
+def open_editor(filename: str):
+    editor = os.environ["EDITOR"]
+    os.system(f"{editor} {filename}")
