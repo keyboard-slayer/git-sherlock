@@ -14,21 +14,28 @@ sys.path.append(str(Path(__file__).parents[1]))
 pluginDir = Path.home() / ".config" / "git_sherlock" / "plugins"
 pluginDir.mkdir(parents=True, exist_ok=True)
 
-for plugin in pluginDir.glob("*.py"):
-    spec = importlib.spec_from_file_location("plugin", plugin)
+with open(pluginDir / "__init__.py", "w") as f:
+    f.writelines(
+        [
+            f"from . import {f.name.split('.')[0]}\n"
+            for f in pluginDir.glob("*.py")
+            if f.name != "__init__.py"
+        ]
+    )
 
-    if not spec or not spec.loader:
-        sys.stderr.write(f"[-] Couldn't load plugin file {plugin}")
-        continue
+spec = importlib.spec_from_file_location("plugin", pluginDir / "__init__.py")
 
-    module = importlib.module_from_spec(spec)
-    sys.modules["plugin"] = module
+if not spec or not spec.loader:
+    sys.stderr.write(f"[-] Couldn't load plugin file __init__.py")
 
-    try:
-        spec.loader.exec_module(module)
-    except Exception as e:
-        print(f"[-] Couldn't load plugin file {plugin}: {traceback.format_exc()}")
-        exit()
+module = importlib.module_from_spec(spec)
+sys.modules["plugin"] = module
+
+try:
+    spec.loader.exec_module(module)
+except Exception as e:
+    print(f"[-] Couldn't load plugins: {traceback.format_exc()}")
+    exit()
 
 # ==============================================================================
 
